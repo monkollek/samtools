@@ -130,6 +130,10 @@ int main_depth(int argc, char *argv[])
 	mplp = bam_mplp_init(n, read_bam, (void**)data); // initialization
 	n_plp = calloc(n, sizeof(int)); // n_plp[i] is the number of covering reads from the i-th BAM
 	plp = calloc(n, sizeof(bam_pileup1_t*)); // plp[i] points to the array of covering reads (internal in mplp)
+
+	bam_mplp_set_maxcnt(mplp, 150); // cap to 150
+	bam_mplp_init_overlaps(mplp); // don't double count bases when reads overlap
+
 	while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) { // come to the next covered position
 		if (pos < beg || pos >= end) continue; // out of range; skip
 		if (bed && bed_overlap(bed, h->target_name[tid], pos, pos + 1) == 0) continue; // not in BED; skip
@@ -141,7 +145,12 @@ int main_depth(int argc, char *argv[])
 				if (p->is_del || p->is_refskip) ++m; // having dels or refskips at tid:pos
 				else if (bam_get_qual(p->b)[p->qpos] < baseQ) ++m; // low base quality
 			}
-			printf("\t%d", n_plp[i] - m); // this the depth to output
+			if(n_plp[i] - m < 100){
+				printf("\t%d", n_plp[i] - m); // this the depth to output
+			}
+			else{
+				printf("\t100");	
+			}
 		}
 		putchar('\n');
 	}
